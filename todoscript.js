@@ -1,4 +1,5 @@
 console.log("TODO App is loaded!");
+
 // Select elements
 const todoInput = document.getElementById("todo-input");
 const addTodoButton = document.getElementById("add-todo");
@@ -43,7 +44,7 @@ function addTodo() {
     }
 
     let todos = JSON.parse(localStorage.getItem("todos")) || [];
-    
+
     // Prevent duplicates
     if (todos.some(todo => todo.text === todoText)) {
         showMessage("TODO already exists!", true);
@@ -67,28 +68,65 @@ function addTodo() {
 // Function to render a TODO item
 function renderTodo(todo) {
     const li = document.createElement("li");
-    li.textContent = todo.text;
-    li.className = "list-group-item"; // Improved styling
+    li.className = "list-group-item d-flex align-items-center";
+
+    // Checkbox for completion toggle
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = todo.completed;
+    checkbox.className = "me-2";
+    checkbox.addEventListener("change", () => toggleComplete(todo.text, checkbox, li));
+
+    // Editable text
+    const todoText = document.createElement("span");
+    todoText.textContent = todo.text;
+    todoText.className = "flex-grow-1";
     if (todo.completed) {
-        li.classList.add("completed");
+        todoText.classList.add("text-decoration-line-through");
     }
 
-    li.addEventListener("click", () => toggleComplete(todo.text, li));
+    // Edit button
+    const editButton = document.createElement("button");
+    editButton.textContent = "Edit";
+    editButton.className = "btn btn-sm btn-warning ms-2";
+    editButton.addEventListener("click", () => editTodo(todo.text, todoText));
+
+    // Append elements
+    li.appendChild(checkbox);
+    li.appendChild(todoText);
+    li.appendChild(editButton);
     todoList.appendChild(li);
 }
 
 // Function to toggle TODO completion and update localStorage
-function toggleComplete(todoText, li) {
+function toggleComplete(todoText, checkbox, li) {
     let todos = JSON.parse(localStorage.getItem("todos")) || [];
     todos = todos.map(todo => {
         if (todo.text === todoText) {
-            todo.completed = !todo.completed;
+            todo.completed = checkbox.checked;
         }
         return todo;
     });
 
     saveTodosToLocalStorage(todos);
-    li.classList.toggle("completed");
+    li.querySelector("span").classList.toggle("text-decoration-line-through", checkbox.checked);
+}
+
+// Function to edit a TODO item
+function editTodo(oldText, todoTextElement) {
+    const newText = prompt("Edit TODO:", oldText);
+    if (newText && newText.trim() !== "") {
+        let todos = JSON.parse(localStorage.getItem("todos")) || [];
+        todos = todos.map(todo => {
+            if (todo.text === oldText) {
+                todo.text = newText;
+            }
+            return todo;
+        });
+
+        saveTodosToLocalStorage(todos);
+        todoTextElement.textContent = newText;
+    }
 }
 
 // Function to clear completed TODOs
@@ -97,9 +135,8 @@ function clearCompleted() {
     todos = todos.filter(todo => !todo.completed);
     saveTodosToLocalStorage(todos);
 
-    todoList.innerHTML = "";
-    todos.forEach(renderTodo);
-    showMessage("Completed TODOS cleared!");
+    loadTodos(); // Reload list to reflect cleared items
+    showMessage("Completed TODOs cleared!");
 }
 
 // Event listeners
